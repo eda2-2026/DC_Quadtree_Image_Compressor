@@ -1,25 +1,33 @@
+import sys
+import os
 import numpy as np
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from image_utils import psnr
 
 def teste_psnr():
-    # Cria uma simulação de imagem original de 2x2
+    print("Iniciando Testes da Issue #7...")
     img_original = np.array([[100, 100], [100, 100]], dtype=np.uint8)
     
-    # Testa PSNR com a imagem idêntica
+    # ── Teste PSNR (Imagens Idênticas) ────────────────────────
     img_identica = np.array([[100, 100], [100, 100]], dtype=np.uint8)
-    assert psnr(img_original, img_identica) == float('inf'), "PSNR de imagens idênticas deve ser infinito."
+    psnr_identico = psnr(img_original, img_identica)
+    assert psnr_identico == float('inf'), "PSNR de imagens idênticas deve ser infinito."
+    print("PSNR Imagens Idênticas OK")
+    print(f"Valor retornado: {psnr_identico}")
     
-    # Testa PSNR com uma imagem modificado/com ruído
+    # ── Teste PSNR (Imagens com Ruído/Diferentes) ─────────────
     img_diferente = np.array([[50, 50], [50, 50]], dtype=np.uint8)
     valor_psnr = psnr(img_original, img_diferente)
     
-    # A resposta deve ser float
     assert isinstance(valor_psnr, float), "PSNR deve retornar um float"
     assert valor_psnr < float('inf'), "O valor de imagens diferentes não deve ser infinito"
     assert valor_psnr > 0, "O valor de cálculo tem de ser positivo"
     
-    print(f"PSNR calculado com diferença: {valor_psnr:.2f} dB")
-    print("Issue #7 (psnr) concluída com sucesso!")
+    print("PSNR Imagens Diferentes OK")
+    print(f"Valor PSNR calculado: {valor_psnr:.2f} dB")
+    
+    print("\n Issue #7 concluída com sucesso!")
 
 if __name__ == "__main__":
     teste_psnr()
