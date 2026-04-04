@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Optional
 import numpy as np
+from image_utils import cor_media, variancia
 
 
 class NodeQuadTree:
@@ -9,12 +10,12 @@ class NodeQuadTree:
     Cada nó cobre uma região definida por (x, y, largura, altura).
     """
 
-    def __init__(self, x: int, y: int, width: int, height: int, level: int = 0):
+    def __init__(self, x: int, y: int, largura: int, altura: int, level: int = 0):
 
         self.x = x
         self.y = y
-        self.width = width
-        self.height = height
+        self.largura = largura
+        self.altura = altura
 
         # Determina a profundidade da arvore
         self.level = level
@@ -32,13 +33,13 @@ class NodeQuadTree:
         return self.level == 0
 
     def total_pixels(self) -> int:
-        return self.width * self.height
+        return self.largura * self.altura
 
     def __repr__(self) -> str:
         tipo = "FOLHA" if self.eh_folha else "NODE"
         return (
             f"[{tipo}] pos=({self.x}, {self.y}) "
-            f"tam={self.width}x{self.height} "
+            f"tam={self.largura}x{self.altura} "
             f"nivel={self.level} "
             f"cor={self.cor_media} var={self.variancia:.1f}"
         )
@@ -65,6 +66,80 @@ class QuadTree:
 
     def is_empty(self) -> bool:
         return self.raiz is None
+
+    def inserir(self, pixels: np.ndarray):
+        """
+        Ponto de Entrada publica da insercao
+        Recebe o array 2d de pixels e controi a arvore binaria
+
+        pixels: np.array de shape (altura, largura), dtype=uint8
+        """
+        altura, largura = pixels.shape
+
+        # Cria o node da raiz cobrindo a imagem inteira
+        self.raiz = NodeQuadTree(x=0, y=0, largura=largura, altura=altura, level=0)
+        self._inserir_recursivo(self.raiz, pixels)
+
+    def _inserir_recursivo(self, no: NodeQuadTree, pixels: np.ndarray):
+        """
+        Algoritmo Principal da Quadtree
+
+        1. Calcula a cor media e variancia do bloco
+        2. Verifica se deve virar folha
+        3. Se nao for folha: divide em 4 filhos e repete
+        """
+
+        self.total_nos += 1
+
+        # 1.
+        no.cor_media = cor_media(pixels, no.x, no.y, no.largura, no.altura)
+        no.variancia = variancia(pixels, no.x, no.y, no.largura, no.altura)
+
+        # 2.
+        # Checa se e homogenea o suficiente
+        bloco_homogeneo = no.variancia <= self.limiar
+
+        # Checa se o bloco chegou no tamanho minimo
+        bloco_minimo = no.level >= self.max_nivel
+
+        # Checa se atingiu a profundidade maxima da arvore
+        profundidade_maxima = no.level >= self.max_nivel
+
+        if bloco_homogeneo or bloco_minimo or profundidade_maxima:
+            no.eh_folha = True
+            self.total_folhas += 1
+            return
+
+        mx = no.largura // 2
+        my = no.altura // 2
+
+        proximo_nivel = no.level + 1
+
+        # filho[0] — Top-Left (TL)
+        no.filhos[0] = NodeQuadTree(
+            x=no.x, y=no.y, largura=mx, altura=my, level=proximo_nivel
+        )
+        # filho[1] — Top-Right (TR)
+        no.filhos[1] = NodeQuadTree(
+            x=no.x + mx, y=no.y, largura=no.largura - mx, altura=my, level=proximo_nivel
+        )
+        # filho[2] — Bottom-Left (BL)
+        no.filhos[2] = NodeQuadTree(
+            x=no.x, y=no.y + my, largura=mx, altura=no.altura - my, level=proximo_nivel
+        )
+        # filho[3] — Bottom-Right (BR)
+        no.filhos[3] = NodeQuadTree(
+            x=no.x + mx,
+            y=no.y + my,
+            largura=no.largura - mx,
+            altura=no.altura - my,
+            level=proximo_nivel,
+        )
+
+        # Recursao nos 4 filhos
+        for filho in no.filhos:
+            assert filho is not None
+            self._inserir_recursivo(filho, pixels)
 
     def taxa_de_compressao(self, total_pixels: int) -> float:
         """
