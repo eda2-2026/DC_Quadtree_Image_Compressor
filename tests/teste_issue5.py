@@ -1,4 +1,9 @@
 # test_issue5.py
+import sys
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import numpy as np
 from quadtree import QuadTree
 
@@ -70,4 +75,4 @@ try:
 except ValueError as e:
     print(f"✅ Teste 5: erro capturado corretamente → '{e}'")
 
-print("\n🎉 Issue #5 concluída com sucesso!")
+print("\nIssue #5 concluída com sucesso!")
