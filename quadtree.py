@@ -199,6 +199,54 @@ class QuadTree:
             "limiar_usado": self.limiar,
         }
 
+    def buscar_pixel(self, px: int, py: int) -> NodeQuadTree:
+        """
+        Busca espacial: dado um pixel (px, py), retorna o nó folha
+        da Quadtree que cobre aquela posição.
+        """
+
+        if self.raiz is None:
+            raise ValueError(
+                "A Quadtree está vazia. Insira uma imagem antes de buscar pixels."
+            )
+
+        if not (0 <= px < self.raiz.largura and 0 <= py < self.raiz.altura):
+            raise ValueError(f"Pixel ({px}, {py}) está fora dos limites da imagem.")
+
+        return self._buscar_pixel_recursivo(self.raiz, px, py)
+
+    def _buscar_pixel_recursivo(
+        self, no: NodeQuadTree, px: int, py: int
+    ) -> NodeQuadTree:
+        """
+        Desce pela arvore escolhendo o filho correto com base na posição do pixel (px, py).
+        Em cada nó, verifica se é folha. Se for, retorna o nó. Se não for, continua descendo.
+        """
+
+        if no.eh_folha:
+            return no
+
+        # calcula o centro absoluto do bloco atual
+        cx = no.x + no.largura // 2
+        cy = no.y + no.altura // 2
+
+        # Decide qual quadrante escolher com base na posição do pixel
+        if px < cx and py < cy:
+            indice_filho = 0  # Top-Left
+        elif px >= cx and py < cy:
+            indice_filho = 1  # Top-Right
+        elif px < cx and py >= cy:
+            indice_filho = 2  # Bottom-Left
+        else:
+            indice_filho = 3  # Bottom-Right
+
+        filho = no.filhos[indice_filho]
+
+        if filho is None:
+            return no  # Se o filho não existe, retorna o nó atual (pode acontecer em blocos menores que min_bloco)
+
+        return self._buscar_pixel_recursivo(filho, px, py)
+
     def __repr__(self) -> str:
         return (
             f"Quadtree(limiar={self.limiar}, "
