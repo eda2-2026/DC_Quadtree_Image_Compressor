@@ -31,17 +31,22 @@ def comprimir(entrada, saida, limiar):
     # 4. Salvar imagem no disco
     salvar(comprimida, saida)
     
+    # 4.5. Serializar para medir o tamanho real da compressão da estrutura
+    dados_serializados = qt.serializar()
+    tamanho_bytes = len(dados_serializados)
+    
     # 5. Computar Métricas
     psnr_val = psnr(original, comprimida)
     stats = qt.estatistica()
     
-    print(f"    -> Concluído! PSNR: {psnr_val:.2f} dB, Folhas: {stats['total_folhas']}")
+    print(f"    -> Concluído! PSNR: {psnr_val:.2f} dB, Folhas: {stats['total_folhas']}, Tamanho: {tamanho_bytes} bytes")
     
     return {
         "limiar": limiar,
         "psnr": psnr_val,
         "folhas": stats["total_folhas"],
         "taxa_compressao": stats["taxa_compressao"],
+        "tamanho_bytes": tamanho_bytes,
         "quadtree": qt,
         "original": original,
         "comprimida": comprimida
@@ -71,9 +76,9 @@ def benchmark_limiares(caminho):
 
 def grafico_limiares(resultados):
     """
-    Plota dois gráficos combinados em um só (com eixos Y paralelos):
-    - PSNR versus Limiar (Métrica de Qualidade)
-    - Folhas versus Limiar (Custo de Estrutura / Memória)
+    Plota gráficos combinados:
+    - Gráfico superior: PSNR versus Limiar (Métrica de Qualidade) e Folhas versus Limiar
+    - Gráfico inferior: Tamanho Serializado (Bytes) versus Limiar
     """
     # Extrai os dados do dicionário de resultados
     limiares = [r["limiar"] for r in resultados]
@@ -81,8 +86,9 @@ def grafico_limiares(resultados):
     # Caso PSNR seja infinito, substitui por um teto representativo para a visualização
     psnrs = [r["psnr"] if r["psnr"] != float('inf') else 100.0 for r in resultados]
     folhas = [r["folhas"] for r in resultados]
+    tamanhos = [r["tamanho_bytes"] for r in resultados]
 
-    fig, ax1 = plt.subplots(figsize=(10, 6))
+    fig, (ax1, ax3) = plt.subplots(2, 1, figsize=(10, 10))
 
     # Grafico 1: PSNR (Eixo Y da esquerda)
     cor1 = 'tab:blue'
@@ -92,15 +98,23 @@ def grafico_limiares(resultados):
     ax1.tick_params(axis='y', labelcolor=cor1)
     ax1.grid(True, linestyle='--', alpha=0.6)
 
-    # Grafico 2: Quantidade de Folhas (Eixo Y da direita - twinx)
+    # Grafico 2: Quantidade de Folhas (Eixo Y da direita - twinx) no ax1
     ax2 = ax1.twinx()
     cor2 = 'tab:red'
-    ax2.set_ylabel('Número de Folhas (Tamanho)', color=cor2)
+    ax2.set_ylabel('Número de Folhas', color=cor2)
     ax2.plot(limiares, folhas, marker='s', linestyle='--', color=cor2, label='Folhas')
     ax2.tick_params(axis='y', labelcolor=cor2)
+    ax1.set_title('Desempenho da Compressão QuadTree: PSNR e Qt. Folhas versus Limiar')
 
-    # Título e ajustes finais
-    plt.title('Desempenho da Compressão QuadTree: PSNR e Qt. Folhas versus Limiar')
+    # Grafico 3: Tamanho Serializado (no ax3, abaixo)
+    cor3 = 'tab:green'
+    ax3.set_xlabel('Limiar de Variância')
+    ax3.set_ylabel('Tamanho do Arquivo (Bytes)', color=cor3)
+    ax3.plot(limiares, tamanhos, marker='^', linestyle='-', color=cor3, label='Bytes')
+    ax3.tick_params(axis='y', labelcolor=cor3)
+    ax3.grid(True, linestyle='--', alpha=0.6)
+    ax3.set_title('Tamanho Real da Árvore Serializada vs Limiar')
+
     fig.tight_layout()
     plt.show()
 

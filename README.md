@@ -19,6 +19,56 @@ Além da compressão, o sistema implementa busca espacial: dado um par de coorde
 
 ---
 
+## Justificativa e Teoria
+
+### O problema de representar imagens
+
+Uma imagem em escala de cinza de 512x512 pixels ocupa 262.144 bytes quando armazenada de forma bruta (um byte por pixel). Para processar, buscar ou transmitir essa imagem, qualquer operação que percorra todos os pixels tem custo **O(n)** onde `n = largura × altura`. Para imagens maiores — como fotografias de 4K (8.294.400 pixels) — esse custo se torna proibitivo.
+
+O desafio central é: como representar e operar sobre imagens de forma que regiões homogêneas (como céu, paredes, fundos lisos) não exijam o mesmo custo computacional que regiões complexas (bordas, texturas, detalhes)?
+
+### Quadtree como solução estrutural
+
+A **Quadtree** é uma árvore onde cada nó interno possui exatamente quatro filhos, cada um correspondendo a um quadrante espacial (noroeste, nordeste, sudoeste, sudeste). Essa propriedade reflete diretamente a estrutura hierárquica de uma imagem:
+
+- **Folhas** representam blocos homogêneos — toda uma região é descrita por um único valor (a cor média), independentemente do seu tamanho em pixels.
+- **Nós internos** representam regiões heterogêneas que precisam ser subdivididas para maior fidelidade.
+
+O ganho de performance é concreto:
+
+| Operação | Array 2D bruto | Quadtree |
+|---|---|---|
+| Reconstrução de imagem | O(largura × altura) | O(número de folhas) |
+| Busca por pixel (x, y) | O(1) com acesso direto, mas sem contexto espacial | O(log n) percorrendo a hierarquia |
+| Compressão / armazenamento | O(largura × altura) por pixel | O(folhas) — regiões uniformes custam 9 bits |
+| Comparação entre imagens | O(largura × altura) | O(folhas comuns) com poda de subárvores idênticas |
+
+Em imagens com grandes áreas uniformes (o caso comum em fotografias com céu, paredes e fundos), o número de folhas é muito menor que o total de pixels. Uma imagem 256x256 com apenas 4 regiões uniformes pode ser representada por **4 folhas** em vez de 65.536 pixels — uma redução de mais de 16.000x.
+
+### Busca por pixel: O(profundidade) em vez de O(n)
+
+A busca espacial é uma das operações onde a Quadtree demonstra sua vantagem mais clara. Dado um par de coordenadas `(x, y)`, o algoritmo:
+
+1. Inicia na raiz, que cobre toda a imagem.
+2. Em cada nó interno, determina em qual dos quatro quadrantes `(x, y)` se encontra — operação O(1).
+3. Desce recursivamente para esse quadrante.
+4. Para na folha que cobre o pixel, retornando sua cor média.
+
+O custo total é **O(profundidade da árvore)**, que é logarítmico em relação ao tamanho da imagem. Para uma imagem 512x512 com `max_nivel=8`, o pior caso é 8 comparações — em vez de percorrer até 262.144 pixels em uma busca linear.
+
+Essa eficiência é fundamental em aplicações reais como:
+- **Sistemas de informação geográfica (GIS)**: localizar em qual região do mapa um ponto está.
+- **Motores de jogos**: detectar colisões espaciais sem comparar todos os objetos entre si.
+- **Visão computacional**: segmentar regiões de interesse sem processar cada pixel individualmente.
+
+### Relação entre estrutura de dados e performance
+
+A Quadtree não é apenas uma escolha de implementação — é uma decisão arquitetural que muda a complexidade assintótica das operações fundamentais do sistema. Enquanto um array bidimensional oferece acesso O(1) por índice mas sem estrutura espacial hierárquica, a Quadtree troca esse acesso direto por uma organização que espelha a natureza da informação contida na imagem.
+
+O resultado prático é visível nas métricas do projeto: com limiar 20, uma fotografia típica tem sua representação reduzida em ~98% enquanto mantém PSNR acima de 30 dB — qualidade visual boa o suficiente para a maioria das aplicações, com uma fração do custo de armazenamento e processamento.
+
+---
+
 ## Instalação
 
 Requer Python 3.8 ou superior.
