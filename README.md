@@ -1,5 +1,11 @@
 # G18_Busca_EDA2-2026.1
 
+### Alunos/Integrantes
+
+- 241039645 - Lucas Andrade Zanetti 
+- 241039073 - Heitor Macedo Ricardo 
+
+
 ---
 
 # Quadtree Image Compressor
@@ -92,6 +98,18 @@ python main.py
 ```
 
 Rodar o arquivo `main.py` testará os limiares em Benchmark de 5 a 500 automaticamente e plotará os gráficos de PSNR e taxa de compressão usando os arquivos definidos.
+
+---
+
+## Screenshots
+
+![comparacao (original vs comprimido)](assets/screenshot-2026-04-05_21-00-09.png)
+
+![Nós folhas das quadtree](assets/screenshot-2026-04-05_21-00-31.png)
+
+![Grafico de comparacao (limiar vs PSNR vs Numero de folha. + Serialização)](assets/screenshot-2026-04-05_21-01-00.png)
+
+![Resultado no terminal](assets/screenshot-2026-04-05_21-03-09.png)
 
 ---
 
